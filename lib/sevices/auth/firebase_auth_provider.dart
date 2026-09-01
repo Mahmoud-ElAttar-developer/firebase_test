@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart'
     show FirebaseAuth, FirebaseAuthException;
-import 'package:firebase_test/sevices/auth/auth_expection_all.dart';
+import 'package:firebase_test/sevices/auth/auth_expection.dart';
+import 'package:firebase_test/sevices/auth/auth_expection_all.dart' hide GenericAuthException, UserNotFoundAuthException;
 import 'package:firebase_test/sevices/auth/auth_provider.dart';
 import 'package:firebase_test/sevices/auth/auth_user.dart';
 
@@ -118,6 +119,12 @@ class FirebaseAuthProvider implements AuthProvider {
   @override
   void dispose() {
     FirebaseAuth.instance.signOut();
+  }
+
+  @override
+  Future<void> initialize() {
+    // TODO: implement initialize
+    throw UnimplementedError();
   }
 }
 

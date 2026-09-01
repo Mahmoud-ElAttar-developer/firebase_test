@@ -66,4 +66,10 @@ class AuthService implements AuthProvider {
 
   @override
   void dispose() => provider.dispose();
+
+  @override
+  Future<void> initialize() {
+    // TODO: implement initialize
+    throw UnimplementedError();
+  }
 }

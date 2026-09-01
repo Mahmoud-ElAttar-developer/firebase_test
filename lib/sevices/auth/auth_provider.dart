@@ -1,6 +1,7 @@
 import 'package:firebase_test/sevices/auth/auth_user.dart';
 
 abstract class AuthProvider {
+  Future<void> initialize();
   Future<void> signInWithEmailAndPassword({
     required String email,
     required String password,
@@ -15,10 +16,7 @@ abstract class AuthProvider {
 
   Future<void> sendEmailVerification();
 
-  Future<void> verifyEmail({
-    required String email,
-    required String code,
-  });
+  Future<void> verifyEmail({required String email, required String code});
 
   Future<void> resetPassword({
     required String email,
@@ -28,7 +26,7 @@ abstract class AuthProvider {
 
   bool get isLoggedIn;
 
- AuthUser? get currentUser;
+  AuthUser? get currentUser;
 
   void dispose();
 }

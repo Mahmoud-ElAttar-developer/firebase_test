@@ -1,6 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+
 import 'package:firebase_test/firebase_options.dart';
+import 'package:firebase_test/sevices/auth/auth_expection.dart';
+import 'package:firebase_test/sevices/auth/auth_expection_all.dart'
+    hide UserNotFoundAuthException, GenericAuthException;
+import 'package:firebase_test/sevices/auth/auth_services.dart';
 import 'package:firebase_test/utilies/show_error_dialog.dart';
 import 'package:flutter/material.dart';
 
@@ -70,43 +74,60 @@ class _LoginViewState extends State<LoginView> {
                       onPressed: () async {
                         final email = _email.text;
                         final password = _password.text;
+
                         try {
-                          final userCredential = await FirebaseAuth.instance
+                          await AuthService.firebase()
                               .signInWithEmailAndPassword(
                                 email: email,
                                 password: password,
                               );
-                          final user = FirebaseAuth.instance.currentUser;
-                          if (user?.emailVerified ?? false) {
-                            if (!context.mounted) return;
+
+                          final user = AuthService.firebase().currentUser;
+
+                          // تأمين الـ BuildContext قبل التوجيه لشاشة أخرى
+                          if (!mounted) return;
+
+                          if (user?.isEmailVerified ?? false) {
                             Navigator.of(context).pushNamedAndRemoveUntil(
                               '/notes/',
                               (route) => false,
                             );
                           } else {
-                            if (!context.mounted) return;
                             Navigator.of(context).pushNamedAndRemoveUntil(
                               '/verify-email/',
                               (route) => false,
                             );
                           }
-                          if (!context.mounted) return;
-                        } on FirebaseAuthException catch (e) {
-                          // 👈 فحص أمان: إذا أغلقت الشاشة لأي سبب، لا تكمل الكود
-                          if (!context.mounted) return;
-
-                          if (e.code == 'invalid-credential' ||
-                              e.code == 'wrong-password' ||
-                              e.code == 'user-not-found') {
+                        } on UserNotFoundAuthException {
+                          if (mounted)
                             await showErrorDialog(
                               context,
-                              'username or password is incorrect',
+                              'هذا المستخدم غير مسجل لدينا.',
                             );
-                          } else {
-                            await showErrorDialog(context, 'Error: ${e.code}');
-                          }
+                        } on WrongPasswordAuthException {
+                          if (mounted)
+                            await showErrorDialog(
+                              context,
+                              'كلمة المرور غير صحيحة.',
+                            );
+                        } on InvalidEmailAuthException {
+                          if (mounted)
+                            await showErrorDialog(
+                              context,
+                              'صيغة البريد الإلكتروني غير صالحة.',
+                            );
+                        } on GenericAuthException {
+                          if (mounted)
+                            await showErrorDialog(
+                              context,
+                              'حدث خطأ في عملية المصادقة.',
+                            );
                         } catch (e) {
-                          await showErrorDialog(context, e.toString());
+                          if (mounted)
+                            await showErrorDialog(
+                              context,
+                              'حدث خطأ غير متوقع: ${e.toString()}',
+                            );
                         }
                       },
 
