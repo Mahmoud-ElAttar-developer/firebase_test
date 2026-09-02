@@ -1,7 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+// ignore_for_file: use_build_context_synchronously
 
-enum MenuAction { logout }
+import 'package:firebase_test/enum/menue_action.dart';
+import 'package:firebase_test/sevices/auth/auth_services.dart';
+import 'package:flutter/material.dart';
 
 class NotesWidget extends StatefulWidget {
   const NotesWidget({super.key});
@@ -17,18 +18,24 @@ class _NotesWidgetState extends State<NotesWidget> {
       appBar: AppBar(
         actions: [
           PopupMenuButton<MenuAction>(
-            onSelected: (MenuAction action) async {
-              showLogoutDialog(context).then((value) async {
-                if (value) {
-                  await FirebaseAuth.instance.signOut();
-                  if (!context.mounted) return;
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/login',
-                    (route) => false,
-                  ); // 👈 السطر المضاف
-                }
-              });
+            onSelected: (value) async {
+              switch (value) {
+                case MenuAction.logout:
+                  final shouldLogout = await showLogoutDialog(context);
+                  if (shouldLogout) {
+                    // استخدام الخدمة النظيفة بتاعتك بدلاً من الفايربيز المباشر
+                    await AuthService.firebase().signOut();
+
+                    if (!mounted) return;
+
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/login', (route) => false);
+                  }
+                  break;
+              }
             },
+
             itemBuilder: (BuildContext context) {
               return [
                 PopupMenuItem(

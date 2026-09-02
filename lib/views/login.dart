@@ -1,5 +1,6 @@
-import 'package:firebase_core/firebase_core.dart';
+// ignore_for_file: use_build_context_synchronously
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_test/firebase_options.dart';
 import 'package:firebase_test/sevices/auth/auth_expection.dart';
 import 'package:firebase_test/sevices/auth/auth_expection_all.dart'
@@ -93,41 +94,47 @@ class _LoginViewState extends State<LoginView> {
                               (route) => false,
                             );
                           } else {
+                            if (!mounted) return;
                             Navigator.of(context).pushNamedAndRemoveUntil(
                               '/verify-email/',
                               (route) => false,
                             );
                           }
                         } on UserNotFoundAuthException {
-                          if (mounted)
+                          if (mounted) {
                             await showErrorDialog(
                               context,
                               'هذا المستخدم غير مسجل لدينا.',
                             );
+                          }
                         } on WrongPasswordAuthException {
-                          if (mounted)
+                          if (mounted) {
                             await showErrorDialog(
                               context,
                               'كلمة المرور غير صحيحة.',
                             );
+                          }
                         } on InvalidEmailAuthException {
-                          if (mounted)
+                          if (mounted) {
                             await showErrorDialog(
                               context,
                               'صيغة البريد الإلكتروني غير صالحة.',
                             );
+                          }
                         } on GenericAuthException {
-                          if (mounted)
+                          if (mounted) {
                             await showErrorDialog(
                               context,
                               'حدث خطأ في عملية المصادقة.',
                             );
+                          }
                         } catch (e) {
-                          if (mounted)
+                          if (mounted) {
                             await showErrorDialog(
                               context,
                               'حدث خطأ غير متوقع: ${e.toString()}',
                             );
+                          }
                         }
                       },
 

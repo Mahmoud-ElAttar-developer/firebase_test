@@ -4,8 +4,21 @@ import 'package:firebase_test/sevices/auth/auth_expection.dart';
 import 'package:firebase_test/sevices/auth/auth_expection_all.dart' hide GenericAuthException, UserNotFoundAuthException;
 import 'package:firebase_test/sevices/auth/auth_provider.dart';
 import 'package:firebase_test/sevices/auth/auth_user.dart';
+import 'package:firebase_test/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+
 
 class FirebaseAuthProvider implements AuthProvider {
+   
+    @override
+  Future<void> initialize() async {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+
+
+ 
   FirebaseAuthProvider._();
 
   static final FirebaseAuthProvider _instance = FirebaseAuthProvider._();
@@ -121,12 +134,9 @@ class FirebaseAuthProvider implements AuthProvider {
     FirebaseAuth.instance.signOut();
   }
 
-  @override
-  Future<void> initialize() {
-    // TODO: implement initialize
-    throw UnimplementedError();
+  
   }
-}
+
 
 
 

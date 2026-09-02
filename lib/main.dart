@@ -4,8 +4,8 @@ import 'package:firebase_test/views/login.dart';
 import 'package:firebase_test/views/notes_view.dart';
 import 'package:firebase_test/views/regiester_view.dart';
 import 'package:firebase_test/views/verify_email_view.dart'; // استدعاء صفحة التأكيد
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'sevices/auth/auth_services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +15,7 @@ void main() async {
       title: 'Firebase Test',
       theme: ThemeData(primarySwatch: Colors.blue),
       debugShowCheckedModeBanner: false,
-       routes: {
+      routes: {
         '/login/': (context) => const LoginView(),
         '/register/': (context) => const RegiesterView(),
         '/notes/': (context) => const NotesWidget(),
@@ -24,21 +24,17 @@ void main() async {
 
       // الـ home هنا هو اللي بيتحكم هيعرض أنهي صفحة كاملة ومستقلة
       home: FutureBuilder(
-        future: Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        ),
+        future: AuthService.firebase().initialize(),
         builder: (context, snapshot) {
           switch (snapshot.connectionState) {
             case ConnectionState.done:
-              final user = FirebaseAuth.instance.currentUser;
-              if (user?.emailVerified ?? false) {
-                // الـ ?? هو المفتاح الذي يحتاج للتأكيد عن طريق البريد الإلكتروني
-                // الـ emailVerified هو المفتاح الذي يحتاج للتأكيد عن طريق البريد الإلكتروني
-                return const NotesWidget(); // صفحة الهوم كاملة ومستقلة
+              final user = AuthService.firebase().currentUser;
+              if (user?.isEmailVerified ?? false) {
+                return const NotesWidget();
               } else if (user == null) {
-                return const LoginView(); // صفحة الهوم كاملة ومستقلة
+                return const LoginView();
               } else {
-                return const VerifyEmailView(); // صفحة التأكيد كاملة ومستقلة
+                return const VerifyEmailView();
               }
             default:
               return const Scaffold(body: Center(child: Text('Loading...')));
