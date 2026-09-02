@@ -12,16 +12,8 @@ class MockAuthProvider implements AuthProvider {
   var _isIntialized = false;
   bool get isInitialized => _isIntialized;
 
-  Future<AuthUser> createUser({
-    required String email,
-    required String password,
-  }) async {
-    if (!isInitialized) throw NotInitializedException();
 
-    // أضفنا كلمة await وكلمة return لتأخير العملية ثانية واحدة ثم إرجاع النتيجة
-    await Future.delayed(const Duration(seconds: 1));
-    return logIn(email: email, password: password);
-  }
+
 
   @override
   AuthUser? get currentUser => _user;
@@ -38,16 +30,22 @@ class MockAuthProvider implements AuthProvider {
   @override
   bool get isLoggedIn => throw UnimplementedError();
 
-  Future<AuthUser> logIn({required String email, required String password}) {
+
+
+  @override
+  Future<AuthUser> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
     if (!isInitialized) throw NotInitializedException();
     if (email == 'error@example.com' && password == 'error') throw UserNotFoundAuthException();
-     
-    if (email == 'wrong@example.com' && password == 'wrong')throw WrongPasswordAuthException();
-      
+    if (email == 'wrong@example.com' && password == 'wrong') throw WrongPasswordAuthException();
+    
     const user = AuthUser(isEmailVerified: true);
     _user = user;
     return Future.value(user);
   }
+
 
   @override
   Future<void> sendEmailVerification() {
@@ -69,14 +67,6 @@ class MockAuthProvider implements AuthProvider {
   }
 
   @override
-  Future<void> signInWithEmailAndPassword({
-    required String email,
-    required String password,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
   Future<void> signOut() async {
     if (!isInitialized) throw NotInitializedException();
     if (_user == null) throw UserNotLoggedInAuthException();
@@ -86,12 +76,19 @@ class MockAuthProvider implements AuthProvider {
   }
 
   @override
-  Future<void> signUpWithEmailAndPassword({
+  Future<AuthUser> signUpWithEmailAndPassword({
     required String email,
     required String password,
-  }) {
-    throw UnimplementedError();
+  }) async {
+    if (!isInitialized) throw NotInitializedException();
+    
+    await Future.delayed(const Duration(seconds: 1));
+    return signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
   }
+
 
   @override
   Future<void> verifyEmail({required String email, required String code}) {
