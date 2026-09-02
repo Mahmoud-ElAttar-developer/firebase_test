@@ -30,7 +30,7 @@ class _NotesWidgetState extends State<NotesWidget> {
 
                     Navigator.of(
                       context,
-                    ).pushNamedAndRemoveUntil('/login', (route) => false);
+                    ).pushNamedAndRemoveUntil('/login/', (route) => false);
                   }
                   break;
               }

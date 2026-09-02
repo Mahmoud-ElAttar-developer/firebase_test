@@ -2,9 +2,8 @@
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_test/firebase_options.dart';
-import 'package:firebase_test/sevices/auth/auth_expection.dart';
 import 'package:firebase_test/sevices/auth/auth_expection_all.dart'
-    hide UserNotFoundAuthException, GenericAuthException;
+   ;
 import 'package:firebase_test/sevices/auth/auth_services.dart';
 import 'package:firebase_test/utilies/show_error_dialog.dart';
 import 'package:flutter/material.dart';
