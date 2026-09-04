@@ -1,21 +1,11 @@
+import 'package:firebase_test/sevices/curd/crud_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
-class DatabaseAlreadyOpenException implements Exception {}
 
-class UnableToGetDocumentDirectory implements Exception {}
 
-class DatabaseNotOpenException implements Exception {}
-
-class CouldNotDeleteUser implements Exception {}
-
-class UserAlreadyExists implements Exception {}
-
-class CouldNotFindUser implements Exception {}
-
-// --------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------
 //------------------------------ الكود الجديد للتحقق والأمان ------------------------------
 
@@ -24,6 +14,84 @@ class NotesServices {
   Database? _db;
 
   // دالة التحقق والأمان من الكود الموجود في الكود السابق
+
+  Future<DatabaseNote> updateNote({
+  required DatabaseNote note,
+  required String text,
+}) async {
+  final db = _getDatabaseOrThrow();
+
+  // 1. التأكد أولاً من أن الملاحظة موجودة في قاعدة البيانات قبل تعديلها
+  await getNote(id: note.id);
+
+  // 2. تحديث نص الملاحظة وإعادة تعيين حالة المزامنة إلى غير متزامن (0)
+  final updatesCount = await db.update(noteTable, {
+    textColumn: text,
+    isSyncedWithCloudColumn: 0,
+  });
+
+  if (updatesCount == 0) {
+    throw CouldNotUpdateNote();
+  } else {
+    // 3. جلب الملاحظة المحدثة مجدداً وإعادتها للتطبيق
+    return await getNote(id: note.id);
+  }
+}
+
+
+Future<Iterable<DatabaseNote>> getAllNotes() async {
+  final db = _getDatabaseOrThrow();
+  
+  // 1. الاستعلام عن كل الملاحظات الموجودة في الجدول بدون شروط
+  final notes = await db.query(noteTable);
+  
+  // 2. تحويل القائمة كلها (List of Maps) إلى مجموعة كائنات قابلة للتكرار (Iterable)
+  return notes.map((noteRow) => DatabaseNote.fromRow(noteRow));
+}
+
+
+  Future<DatabaseNote> getNote({required int id}) async {
+  final db = _getDatabaseOrThrow();
+  
+  // 1. الاستعلام عن الملاحظة بناءً على الـ id وتحديد النتيجة بملاحظة واحدة فقط
+  final notes = await db.query(
+    noteTable,
+    limit: 1,
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+  
+  // 2. التحقق من وجود الملاحظة وتحويلها إلى كائن يفهمه فلاتر
+  if (notes.isEmpty) {
+    throw CouldNotFindNote();
+  } else {
+    return DatabaseNote.fromRow(notes.first);
+  }
+}
+
+
+  Future<int> deleteAllNotes() async {
+  final db = _getDatabaseOrThrow();
+  return await db.delete(noteTable);
+}
+
+
+Future<void> deleteNote({required int id}) async {
+  final db = _getDatabaseOrThrow();
+  
+  // 1. تنفيذ أمر الحذف من جدول الملاحظات بناءً على الرقم التعريفي
+  final deletedCount = await db.delete(
+    noteTable,
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+  
+  // 2. إذا عادت النتيجة بـ 0، هذا يعني أن الملاحظة لم تكن موجودة أصلاً
+  if (deletedCount == 0) {
+    throw CouldNotDeleteNote(); // أو اكتب اسم الـ Exception كما قمت بتعريفه في أعلى ملفك
+  }
+}
+
 
 Future<DatabaseNote> createNote({required DatabaseServices owner}) async {
   final db = _getDatabaseOrThrow();
