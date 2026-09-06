@@ -102,7 +102,7 @@ void main() {
       () async {
         await provider.initialize();
         expect(provider.isInitialized, true);
-      },
+      }, 
       timeout: const Timeout(Duration(seconds: 2)),
     );
 
@@ -191,7 +191,7 @@ class MockAuthProvider implements AuthProvider {
     if (email == 'error@example.com' && password == 'error') throw UserNotFoundAuthException();
     if (email == 'wrong@example.com' && password == 'wrong') throw WrongPasswordAuthException();
 
-    const user = AuthUser(isEmailVerified: true);
+    const user = AuthUser(isEmailVerified: true, email: '');
     _user = user;
     return Future.value(user);
   }
@@ -201,7 +201,7 @@ class MockAuthProvider implements AuthProvider {
     if (!isInitialized) throw NotInitializedException();
     final user = _user;
     if (user == null) throw UserNotLoggedInAuthException();
-    const user2 = AuthUser(isEmailVerified: true);
+    const user2 = AuthUser(isEmailVerified: true, email: '');
     _user = user2;
     return Future.value();
   }
