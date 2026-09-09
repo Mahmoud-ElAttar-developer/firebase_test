@@ -1,11 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_test/firebase_options.dart';
 import 'package:firebase_test/views/login.dart';
-import 'package:firebase_test/views/notes/new_views.dart';
+import 'package:firebase_test/views/notes/creat_update_note.dart';
 import 'package:firebase_test/views/notes/notes_view.dart';
 import 'package:firebase_test/views/regiester_view.dart';
 import 'package:firebase_test/views/verify_email_view.dart'; // استدعاء صفحة التأكيد
 import 'package:flutter/material.dart';
+
 import 'sevices/auth/auth_services.dart';
 
 void main() async {
@@ -21,7 +22,7 @@ void main() async {
         '/register/': (context) => const RegiesterView(),
         '/notes/': (context) => const NotesView(),
         '/verify-email/': (context) => const VerifyEmailView(),
-        '/new-note/': (context) => const NewNoteView(),
+        '/new-note/': (context) => const CreateUpdateNoteView(),
       },
 
       // الـ home هنا هو اللي بيتحكم هيعرض أنهي صفحة كاملة ومستقلة

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_test/extintions/list/filter.dart';
 import 'package:firebase_test/sevices/curd/crud_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
@@ -7,14 +8,20 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 // --------------------------------------------------------------------------------------
-//------------------------------ الكود الجديد للتحقق والأمان ------------------------------
+//------------------------------ الكود للتحقق والأمان ------------------------------
 
 // هذا هو الكلاس المسؤول عن تنفيذ العمليات
 class NotesServices {
   Database? _db;
   // 1. القائمة المحلية المؤقتة المخزنة في الذاكرة (تكون فارغة في البداية)
   List<DatabaseNote> _notes = [];
-   // تهيئة كائن الخدمة المشترك وتجهيز متحكم البث مع ميزة التحديث التلقائي الفوري عند الاستماع
+  // الملف ده وظيفته يفتح نسخة واحدة مشتركة للأبلكيشن كله،
+  // ويعمل ماسورة بث مباشر للملاحظات تحدث الـ
+  //UI أول بأول
+
+  // المستخدم الحالي المخزن في الذاكرة (تكون فارغة في البداية)
+  DatabaseServices? _user;
+
   static final NotesServices _shared = NotesServices._sharedInstance();
   NotesServices._sharedInstance() {
     _notesStreamController = StreamController<List<DatabaseNote>>.broadcast(
@@ -24,17 +31,32 @@ class NotesServices {
     );
   }
   factory NotesServices() => _shared;
-  // بفضل هذا التصميم، نضمن بنسبة 100% أن الشاشة وقاعدة البيانات يتحدثان مع نفس 
+  // بفضل هذا التصميم، نضمن بنسبة 100% أن الشاشة وقاعدة البيانات يتحدثان مع نفس
   //"الصندوق المشترك" في ذاكرة الهاتف، فتظهر التحديثات فوراً.
-  Stream<List<DatabaseNote>> get allNotes => _notesStreamController.stream;
-   // جعل متحكم البث متغيراً يتم تهيئته لاحقاً بشكل احترافي لتجنب التكرار في الذاكرة
+  Stream<List<DatabaseNote>> get allNotes =>
+      _notesStreamController.stream.filter((note) {
+        final currentUser = _user;
+        if (currentUser != null) {
+          return note.userId == currentUser.id;
+        } else {
+          throw UserShouldBeSetBeforeReadingAllNotes();
+        }
+      });
+
+  // جعل متحكم البث متغيراً يتم تهيئته لاحقاً بشكل احترافي لتجنب التكرار في الذاكرة
   late final StreamController<List<DatabaseNote>> _notesStreamController;
   // 1. المحاولة الأولى: جلب المستخدم من قاعدة البيانات باستخدام البريد الإلكتروني
-  Future<DatabaseServices> getOrCreateUser({required String email}) async {
+  Future<DatabaseServices> getOrCreateUser({
+    required String email,
+    bool setAsCurrentUser = true,
+  }) async {
     try {
       // 1. المحاولة الأولى: جلب المستخدم من قاعدة البيانات باستخدام البريد الإلكتروني
-      final user = await getUser(email: email);
-      return user;
+      final createdUser = await getUser(email: email);
+      if (setAsCurrentUser) {
+        _user = createdUser;
+      }
+      return createdUser;
     } on CouldNotFindUser {
       // 2. إذا لم يجد المستخدم (رمى خطأ عدم العثور عليه)، قم بإنشائه فوراً كحساب جديد محلياً
       final createdUser = await createUser(email: email);
@@ -51,7 +73,6 @@ class NotesServices {
     _notesStreamController.add(_notes);
   }
 
-  // دالة التحقق والأمان من الكود الموجود في الكود السابق
   Future<DatabaseNote> updateNote({
     required DatabaseNote note,
     required String text,
@@ -63,10 +84,12 @@ class NotesServices {
     await getNote(id: note.id);
 
     // 2. تحديث نص الملاحظة وإعادة تعيين حالة المزامنة إلى غير متزامن (0)
-    final updatesCount = await db.update(noteTable, {
-      textColumn: text,
-      isSyncedWithCloudColumn: 0,
-    });
+    final updatesCount = await db.update(
+      noteTable,
+      {textColumn: text, isSyncedWithCloudColumn: 0},
+      where: 'id = ?',
+      whereArgs: [note.id],
+    );
 
     if (updatesCount == 0) {
       throw CouldNotUpdateNote();
@@ -155,6 +178,7 @@ class NotesServices {
   }
 
   Future<DatabaseNote> createNote({required DatabaseServices owner}) async {
+    // الملف ده وظيفته يفتح نسخة واحدة مشتركة للأبلكيشن كله،
     await _ensureDbIsOpen();
     final db = _getDatabaseOrThrow();
 
@@ -190,7 +214,7 @@ class NotesServices {
       where: 'email = ?',
       whereArgs: [email.toLowerCase()],
     );
-    if (result.isNotEmpty) {
+    if (result.isEmpty) {
       throw CouldNotFindUser();
     } else {
       return DatabaseServices.fromRow(result.first);
@@ -223,6 +247,7 @@ class NotesServices {
       return db;
     }
   }
+
   // الدوال الأساسية لإدارة قاعدة البيانات
   Future<void> deleteUser({required String email}) async {
     await _ensureDbIsOpen();
@@ -264,42 +289,30 @@ class NotesServices {
     try {
       final docsPath = await getApplicationDocumentsDirectory();
       final dbPath = join(docsPath.path, dbName);
-      final db = await openDatabase(dbPath);
+
+      // تعديل هنا: بنفتح الداتابيز وبنديها رقم إصدار ودالة onCreate إجبارية لبناء الجداول
+      final db = await openDatabase(
+        dbPath,
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute(createUserTable);
+          await db.execute(craetNotesTable);
+        },
+      );
       _db = db;
-      // create the user table
-      await db.execute(cveateUserTable);
-      // create the notes table
+
+      // سطر أمان: لو الداتابيز مفتوحة قديمة والجداول ناقصة، هينفذهم للتأكيد
+      await db.execute(createUserTable);
       await db.execute(craetNotesTable);
+
       await _cacheNotes();
     } on MissingPlatformDirectoryException {
       throw UnableToGetDocumentDirectory();
+    } catch (e) {
+      throw CouldNotOpenDatabase();
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // مخصص فقط لتمثيل جدول المستخدمين (userTable) في ذاكرة الهاتف.
 @immutable
@@ -329,27 +342,8 @@ class DatabaseServices {
   int get hashCode => id.hashCode;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//  يقوم بتحويل أسطر جدول الملاحظات 
-//(notesTable) من قاعدة البيانات الصلبة إلى كائنات 
+//  يقوم بتحويل أسطر جدول الملاحظات
+//(notesTable) من قاعدة البيانات الصلبة إلى كائنات
 // (Objects)
 class DatabaseNote {
   final int id;
@@ -391,29 +385,6 @@ class DatabaseNote {
       isSyncedWithCloud.hashCode;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // هذه هي الكلمات الثابتة (Constants) لأسماء الجداول والأعمدة في SQL
 
 const dbName = 'notes.db';
@@ -421,27 +392,55 @@ const noteTable = 'notes';
 const userTable = 'user';
 const idColumn = 'id';
 const emailColumn = 'email';
-const userIdColumn = 'userId';
+const userIdColumn = 'user_id';
 const textColumn = 'text';
-const isSyncedWithCloudColumn = 'isSyncedWithCloud';
+const isSyncedWithCloudColumn = 'is_synced_with_cloud';
 
 //--------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------
 
-//  حقيقية لإنشاء الجداول والكيفية إنشاء الجداول والكيفية إنشاء الجداول نصوص ضخمة مكتوبة بلغة SQL
+//  حقيقية لإنشاء الجداول والكيفية إنشاء الجداول نصوص ضخمة مكتوبة بلغة SQL
 
-const cveateUserTable = '''  CREATE TABLE IF NOT EXISTS "user"  (
-	"id"	INTEGER NOT NULL,
-	"email"	TEXT NOT NULL UNIQUE,
-	PRIMARY KEY("id" AUTOINCREMENT)
-);''';
-const craetNotesTable = '''  CREATE TABLE IF NOT EXISTS "notes"  (
-	"id"	INTEGER NOT NULL,
-	"usrer_id"	INTEGER NOT NULL,
-	"text"	TEXT NOT NULL,
-	"is_synced_with_cloud"	INTEGER DEFAULT 0,
-	PRIMARY KEY("id" AUTOINCREMENT),
-	FOREIGN KEY("user_id") REFERENCES "user"("id")
- ""
-);
-  ''';
+const createUserTable = '''
+  CREATE TABLE IF NOT EXISTS "user" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "email" TEXT NOT NULL UNIQUE
+  );
+''';
+
+const craetNotesTable = '''
+  CREATE TABLE IF NOT EXISTS "notes" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "user_id" INTEGER NOT NULL,
+    "text" TEXT NOT NULL,
+    "is_synced_with_cloud" INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY("user_id") REFERENCES "user"("id")
+  );
+''';
+
+
+
+
+
+
+
+
+
+
+
+
+// const createUserTable = '''  CREATE TABLE IF NOT EXISTS "user"  (
+// 	"id"	INTEGER NOT NULL,
+// 	"email"	TEXT NOT NULL UNIQUE,
+// 	PRIMARY KEY("id" AUTOINCREMENT)
+// );''';
+// const craetNotesTable = '''  CREATE TABLE IF NOT EXISTS "notes"  (
+// 	"id"	INTEGER NOT NULL,
+// 	"usrer_id"	INTEGER NOT NULL,
+// 	"text"	TEXT NOT NULL,
+// 	"is_synced_with_cloud"	INTEGER DEFAULT 0,
+// 	PRIMARY KEY("id" AUTOINCREMENT),
+// 	FOREIGN KEY("user_id") REFERENCES "user"("id")
+//  ""
+// );
+//   ''';

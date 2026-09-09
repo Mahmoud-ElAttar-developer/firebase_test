@@ -1,15 +1,16 @@
 import 'package:firebase_test/sevices/auth/auth_services.dart';
 import 'package:firebase_test/sevices/curd/notes_services.dart';
+import 'package:firebase_test/utilies/generics/get_arguments.dart';
 import 'package:flutter/material.dart';
 
-class NewNoteView extends StatefulWidget {
-  const NewNoteView({super.key});
+class CreateUpdateNoteView extends StatefulWidget {
+  const CreateUpdateNoteView({super.key});
 
   @override
-  State<NewNoteView> createState() => _NewNoteViewState();
+  State<CreateUpdateNoteView> createState() => _CreateUpdateNoteViewState();
 }
 
-class _NewNoteViewState extends State<NewNoteView> {
+class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
   DatabaseNote? _note;
   // تصحيح التسمية هنا باستخدام اسم كلاسك الخاص NotesServices والشرطة السفلية الصحيحة للمتغير
   late final NotesServices _notesService;
@@ -30,7 +31,10 @@ class _NewNoteViewState extends State<NewNoteView> {
       return;
     }
     final text = _textController.text;
-    await _notesService.updateNote(note: note, text: text);
+    await _notesService.updateNote(
+      note: note,
+      text: text,
+    ); // تحديث الملاحظة في قاعدة البيانات
   }
 
   // دالة لتنظيم وربط مستمع النص بحقل الكتابة ومنع تكرار الاستماع في الذاكرة
@@ -40,24 +44,28 @@ class _NewNoteViewState extends State<NewNoteView> {
   }
 
   // دالة إنشاء الملاحظة وتثبيت المستمع اللحظي في الخلفية بشكل آمن لضمان بث التحديثات تلقائياً
-  Future<DatabaseNote> createNewNote() async {
+   Future<DatabaseNote> createOrGetExistingNote(BuildContext context) async {
+    final widgetNote = context.getArgument<DatabaseNote>();
+
+    if (widgetNote != null) {
+      _note = widgetNote;
+      _textController.text = widgetNote.text;
+      return widgetNote;
+    }
+
     final existingNote = _note;
     if (existingNote != null) {
       return existingNote;
     }
-
+    
     final currentUser = AuthService.firebase().currentUser!;
     final email = currentUser.email!;
-    final owner = await _notesService.getOrCreateUser(email: email);
-
+    final owner = await _notesService.getUser(email: email);
     final newNote = await _notesService.createNote(owner: owner);
     _note = newNote;
-
-    // تأكد من وجود هذا السطر هنا لتفعيل الحفظ اللحظي مع كل حرف يكتبه المستخدم
-    _setupTextControllerListener();
-
     return newNote;
   }
+
 
   //   اذا دخل المستخدم و خرج فورا تقوم بمسح اى مذكرة من قاعدة البيانات
   void _deleteNoteIfTextIsEmpty() {
@@ -91,36 +99,57 @@ class _NewNoteViewState extends State<NewNoteView> {
     return Scaffold(
       appBar: AppBar(title: const Text('New Note')),
       body: FutureBuilder(
-        future: createNewNote(),
+        future: createOrGetExistingNote( context),
         builder: (context, snapshot) {
           switch (snapshot.connectionState) {
+            // في حالة أن الـ Future انتهى من العمل وقاعدة البيانات ردت علينا
             case ConnectionState.done:
-              _note = snapshot.data as DatabaseNote;
+              // فحص أمان: نتأكد أولاً أن قاعدة البيانات نجحت في إنشاء الملاحظة ولم ترجع قيمة فارغة
+              if (snapshot.hasData && snapshot.data != null) {
+                // حفظ الملاحظة داخل المتغير العام لكي يتمكن الـ Listener من تعديلها أثناء الكتابة
+                // _note = snapshot.data as DatabaseNote;
 
-              // 👈 هذا هو السطر المفقود الذي يجب أن تتأكد من وجوده هنا بالملي
-              _setupTextControllerListener();
-              // التعديل الذكي: عرض حقل الكتابة مباشرة والاعتماد على الحفظ اللحظي المربوط مسبقاً في الخلفية
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _textController,
-                  keyboardType: TextInputType.multiline,
-                  maxLines: null,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    hintText: 'Start typing your note...',
-                    border: InputBorder.none,
+                // تشغيل الـ Listener لمراقبة الكيبورد وحفظ الكلمات فوراً في الداتابيز
+                _setupTextControllerListener();
+                // عرض واجهة الكتابة (التكست فيلد) للمستخدم بعد التأكد من أمان البيانات
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: _textController,
+                    keyboardType: TextInputType.multiline,
+                    maxLines: null,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Start typing your note...',
+                      border: InputBorder.none,
+                    ),
                   ),
-                ),
-              );
+                );
+              } else {
+                // في حالة وجود مشكلة في الداتابيز ولم ترجع بيانات، نعرض رسالة خطأ بدلاً من الانهيار بشاشة حمراء
+                return Scaffold(
+                  body: Center(
+                    child: Text(
+                      'Error: ${snapshot.error ?? "No note data found."}',
+                    ),
+                  ),
+                );
+              }
+
+            // في حالة أن قاعدة البيانات لسه بتحمل، نعرض مؤشر تحميل دائري
             default:
-              return const Center(child: CircularProgressIndicator());
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
           }
         },
       ),
     );
   }
 }
+  
+  
+
 
 
 

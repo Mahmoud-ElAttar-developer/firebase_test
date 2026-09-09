@@ -4,7 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_test/firebase_options.dart';
 import 'package:firebase_test/sevices/auth/auth_expection_all.dart';
 import 'package:firebase_test/sevices/auth/auth_services.dart';
-import 'package:firebase_test/utilies/show_error_dialog.dart';
+import 'package:firebase_test/utilies/dialogs/error_dialog.dart';
 import 'package:flutter/material.dart';
 
 class RegiesterView extends StatefulWidget {
@@ -100,36 +100,36 @@ class _RegiesterViewState extends State<RegiesterView> {
                         } on WeakPasswordAuthException {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'The password is too weak.',
+                              context: context,
+                              text: 'The password is too weak.',
                             );
                           }
                         } on EmailAlreadyInUseAuthException {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'The email is already in use.',
+                              context: context,
+                              text: 'The email is already in use.',
                             );
                           }
                         } on InvalidEmailAuthException {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'Invalid email address.',
+                              context: context,
+                              text: 'Invalid email address.',
                             );
                           }
                         } on GenericAuthException {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'Failed to register.',
+                              context: context,
+                              text: 'failed to register.',
                             );
                           }
                         } catch (e) {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'Error: ${e.toString()}',
+                              context: context,
+                              text: 'Error: ${e.toString()}',
                             );
                           }
                         }

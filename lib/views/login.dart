@@ -2,10 +2,9 @@
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_test/firebase_options.dart';
-import 'package:firebase_test/sevices/auth/auth_expection_all.dart'
-   ;
+import 'package:firebase_test/sevices/auth/auth_expection_all.dart';
 import 'package:firebase_test/sevices/auth/auth_services.dart';
-import 'package:firebase_test/utilies/show_error_dialog.dart';
+import 'package:firebase_test/utilies/dialogs/error_dialog.dart';
 import 'package:flutter/material.dart';
 
 class LoginView extends StatefulWidget {
@@ -102,36 +101,37 @@ class _LoginViewState extends State<LoginView> {
                         } on UserNotFoundAuthException {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'هذا المستخدم غير مسجل لدينا.',
+                              context: context,
+                              text: 'User not found.',
                             );
                           }
                         } on WrongPasswordAuthException {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'كلمة المرور غير صحيحة.',
+                              context: context,
+                              text: 'Wrong credentials.',
                             );
                           }
                         } on InvalidEmailAuthException {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'صيغة البريد الإلكتروني غير صالحة.',
+                              context: context,
+                              text: 'Invalid email address.',
                             );
                           }
                         } on GenericAuthException {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'حدث خطأ في عملية المصادقة.',
+                              context: context,
+                              text: 'Authentication error.',
                             );
                           }
                         } catch (e) {
                           if (mounted) {
                             await showErrorDialog(
-                              context,
-                              'حدث خطأ غير متوقع: ${e.toString()}',
+                              context: context,
+                              text:
+                                  'An unexpected error occurred: ${e.toString()}',
                             );
                           }
                         }

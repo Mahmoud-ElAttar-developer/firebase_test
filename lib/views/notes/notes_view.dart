@@ -3,7 +3,10 @@
 import 'package:firebase_test/enum/menue_action.dart';
 import 'package:firebase_test/sevices/auth/auth_services.dart';
 import 'package:firebase_test/sevices/curd/notes_services.dart';
+import 'package:firebase_test/utilies/dialogs/log_out_dialog.dart';
+import 'package:firebase_test/views/notes/notes_list_view.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_test/constants/routes.dart';
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -82,25 +85,20 @@ class _NotesViewState extends State<NotesView> {
                     default:
                       if (snapshot.hasData) {
                         final allNotes = snapshot.data as List<DatabaseNote>;
-
-                        // فحص إضافي: لو القائمة رجعت فارغة نطبع نص يوضح ذلك بدل الشاشة البيضاء
-                        if (allNotes.isEmpty) {
-                          return const Center(
-                            child: Text(
-                              'No notes found yet. Press + to add one!',
-                            ),
-                          );
-                        }
-
-                        return ListView.builder(
-                          itemCount: allNotes.length,
-                          itemBuilder: (context, index) {
-                            final note = allNotes[index];
-                            return ListTile(title: Text(note.text));
+                        return NotesListView(
+                          notes: allNotes,
+                          onDeleteNote: (note) async {
+                            await _notesService.deleteNote(id: note.id);
+                          },
+                          onTap: (note) {
+                            Navigator.of(context).pushNamed(
+                              '/new-note/', // عدل الاسم هنا ليطابق المكتوب في الـ main.dart بالظبط
+                              arguments: note,
+                            );
                           },
                         );
                       } else {
-                        return const Center(child: CircularProgressIndicator());
+                        return const CircularProgressIndicator();
                       }
                   }
                 },
@@ -112,33 +110,4 @@ class _NotesViewState extends State<NotesView> {
       ),
     );
   }
-}
-
-
-
-// دالة بناء وعرض نافذة تنبيه للمستخدم لتأكيد رغبته في تسجيل الخروج من التطبيق أم لا
-Future<bool> showLogOutDialog(BuildContext context) {
-  return showDialog<bool>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('Sign out'),
-        content: const Text('Are you sure you want to sign out?'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(false);
-            },
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(true);
-            },
-            child: const Text('Log out'),
-          ),
-        ],
-      );
-    },
-  ).then((value) => value ?? false);
 }
