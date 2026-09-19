@@ -1,7 +1,13 @@
 import 'package:firebase_test/sevices/auth/auth_services.dart';
+import 'package:firebase_test/sevices/cloud/cloud_note.dart';
+import 'package:firebase_test/utilies/dialogs/cannot_share_empty_note_dialog.dart';
+import 'package:flutter/material.dart';
+// شرح بالعربي: استيراد كلاس الملاحظة السحابية والـ Exceptions مع مراعاة اسم مجلدك 'sevices'
+import 'package:firebase_test/sevices/cloud/fire_base_cloud_storage.dart';
+// شرح بالعربي: استيراد خدمات SQLite المحلية مع تعديل المسار ليتطابق مع اسم مجلدك المكتوب 'curd' بدلاً من 'crud'
 import 'package:firebase_test/sevices/curd/notes_services.dart';
 import 'package:firebase_test/utilies/generics/get_arguments.dart';
-import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 class CreateUpdateNoteView extends StatefulWidget {
   const CreateUpdateNoteView({super.key});
@@ -12,39 +18,47 @@ class CreateUpdateNoteView extends StatefulWidget {
 
 class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
   DatabaseNote? _note;
+  CloudNote? _cloudNote;
   // تصحيح التسمية هنا باستخدام اسم كلاسك الخاص NotesServices والشرطة السفلية الصحيحة للمتغير
   late final NotesServices _notesService;
+  late final FirebaseCloudStorage _cloudStorage;
   late final TextEditingController _textController;
 
   // تهيئة وتجهيز خدمة الملاحظات ومتحكم النص بمجرد فتح شاشة الملاحظة الجديدة
   @override
   void initState() {
-    _notesService = NotesServices(); // توحيد المتغير بدون أخطاء إملائية
+    // شرح بالعربي: تهيئة الخدمة المحلية SQLite لكي تظل تعمل في الخلفية
+    _notesService = NotesServices();
+    // شرح بالعربي: تهيئة الخدمة السحابية FirebaseCloudStorage لكي تعمل بالتوازي مع الخدمة المحلية
+    _cloudStorage = FirebaseCloudStorage();
+    // شرح بالعربي: تهيئة متحكم النصوص لمتابعة الحقل أولاً بأول
     _textController = TextEditingController();
     super.initState();
   }
 
-  // دالة الاستماع لحقل الكتابة وتحديث الملاحظة في قاعدة البيانات فوراً مع كل حرف يكتبه المستخدم
+  // شرح بالعربي: دالة الاستماع الموحدة بالـ أندرسكور التي تقوم بتحديث الملاحظة في السيكوال المحلي والفايرستور السحابي بالتوازي مع كل حرف يكتبه المستخدم
   void _textControllerListener() async {
-    final note = _note;
-    if (note == null) {
-      return;
-    }
-    final text = _textController.text;
-    await _notesService.updateNote(
-      note: note,
-      text: text,
-    ); // تحديث الملاحظة في قاعدة البيانات
-  }
+    final localNote = _note; // كائن الملاحظة المحلية SQLite بالـ أندرسكور
+    final currentCloudNote =
+        _cloudNote; // كائن الملاحظة السحابية Firestore بالـ أندرسكور
+    final text = _textController.text; // متحكم النصوص بالـ أندرسكور
 
-  // دالة لتنظيم وربط مستمع النص بحقل الكتابة ومنع تكرار الاستماع في الذاكرة
-  void _setupTextControllerListener() {
-    _textController.removeListener(_textControllerListener);
-    _textController.addListener(_textControllerListener);
+    // أولاً: تحديث الملاحظة المحلية في SQLite (إذا كانت موجودة وعمل المستخدم أي تعديل)
+    if (localNote != null && text.isNotEmpty) {
+      await _notesService.updateNote(note: localNote, text: text);
+    }
+
+    // ثانياً: تحديث الملاحظة السحابية في Firestore (إذا كانت موجودة وعمل المستخدم أي تعديل)
+    if (currentCloudNote != null && text.isNotEmpty) {
+      await _cloudStorage.updateNote(
+        documentId: currentCloudNote.documentId,
+        text: text,
+      );
+    }
   }
 
   // دالة إنشاء الملاحظة وتثبيت المستمع اللحظي في الخلفية بشكل آمن لضمان بث التحديثات تلقائياً
-   Future<DatabaseNote> createOrGetExistingNote(BuildContext context) async {
+  Future<DatabaseNote> createOrGetExistingNote(BuildContext context) async {
     final widgetNote = context.getArgument<DatabaseNote>();
 
     if (widgetNote != null) {
@@ -57,30 +71,73 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
     if (existingNote != null) {
       return existingNote;
     }
-    
+
     final currentUser = AuthService.firebase().currentUser!;
-    final email = currentUser.email!;
+    final email = currentUser.email;
     final owner = await _notesService.getUser(email: email);
     final newNote = await _notesService.createNote(owner: owner);
     _note = newNote;
     return newNote;
   }
 
+  // شرح بالعربي: دالة سحابية جديدة لجلب الملاحظة السحابية الحالية أو إنشاء واحدة جديدة فارغة على Firestore إذا لم تكن موجودة
+  Future<CloudNote> createOrGetExistingCloudNote(BuildContext context) async {
+    final widgetCloudNote = context.getArgument<CloudNote>();
 
-  //   اذا دخل المستخدم و خرج فورا تقوم بمسح اى مذكرة من قاعدة البيانات
+    if (widgetCloudNote != null) {
+      _cloudNote = widgetCloudNote;
+      _textController.text = widgetCloudNote.text;
+      return widgetCloudNote;
+    }
+
+    final existingCloudNote = _cloudNote;
+    if (existingCloudNote != null) {
+      return existingCloudNote;
+    }
+
+    // شرح بالعربي: جلب بيانات المستخدم الحالي المسجل في الـ Firebase Auth
+    final currentUser = AuthService.firebase().currentUser!;
+    final userId = currentUser.id;
+
+    // شرح بالعربي: إنشاء الملاحظة الجديدة مباشرة على السحاب باستخدام الـ _cloudStorage المعرف سابقاً
+    final newCloudNote = await _cloudStorage.createNewNote(ownerUserId: userId);
+    _cloudNote = newCloudNote;
+    return newCloudNote;
+  }
+
+  // شرح بالعربي: دالة لحذف الملاحظة تلقائياً إذا خرج المستخدم وتركها فارغة (تحذف محلياً ومن السحاب معاً)
   void _deleteNoteIfTextIsEmpty() {
     final note = _note;
+    final cloudNote = _cloudNote;
+
+    // أولاً: الحذف من السيكوال المحلي
     if (_textController.text.isEmpty && note != null) {
       _notesService.deleteNote(id: note.id);
     }
+
+    // ثانياً: الحذف من الفايرستور السحابي
+    if (_textController.text.isEmpty && cloudNote != null) {
+      _cloudStorage.deleteNote(documentId: cloudNote.documentId);
+    }
   }
 
-  //  هذه الدالة مسؤولة عن الحفظ التلقائي الذكي؛ فعندما يقرر المستخدم الخروج من شاشة الملاحظة أو إغلاقها، تقوم الدالة بحفظ ملاحظة جديدة
+  // شرح بالعربي: دالة لحفظ أو تحديث الملاحظة تلقائياً عند الخروج إذا كانت تحتوي على نص (تحفظ محلياً وفي السحاب معاً)
   void _saveNoteIfTextNotEmpty() async {
     final note = _note;
+    final cloudNote = _cloudNote;
     final text = _textController.text;
+
+    // أولاً: التحديث في السيكوال المحلي
     if (note != null && text.isNotEmpty) {
       await _notesService.updateNote(note: note, text: text);
+    }
+
+    // ثانياً: التحديث في الفايرستور السحابي
+    if (cloudNote != null && text.isNotEmpty) {
+      await _cloudStorage.updateNote(
+        documentId: cloudNote.documentId,
+        text: text,
+      );
     }
   }
 
@@ -93,29 +150,58 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
     super.dispose();
   }
 
-  // بناء الشاشة الرسومية للملاحظة الجديدة والاعتماد التلقائي على الحفظ اللحظي المستقر
+  // شرح بالعربي: دالة لربط وتفعيل الـ Listener الموحد مع متحكم النصوص بعد إزالة القديم لمنع تكرار الاستماع في الذاكرة
+  void _setupTextControllerListener() {
+    _textController.removeListener(_textControllerListener);
+    _textController.addListener(_textControllerListener);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('New Note')),
-      body: FutureBuilder(
-        future: createOrGetExistingNote( context),
-        builder: (context, snapshot) {
-          switch (snapshot.connectionState) {
-            // في حالة أن الـ Future انتهى من العمل وقاعدة البيانات ردت علينا
-            case ConnectionState.done:
-              // فحص أمان: نتأكد أولاً أن قاعدة البيانات نجحت في إنشاء الملاحظة ولم ترجع قيمة فارغة
-              if (snapshot.hasData && snapshot.data != null) {
-                // حفظ الملاحظة داخل المتغير العام لكي يتمكن الـ Listener من تعديلها أثناء الكتابة
-                // _note = snapshot.data as DatabaseNote;
+      appBar: AppBar(
+        title: const Text('New Note'),
 
-                // تشغيل الـ Listener لمراقبة الكيبورد وحفظ الكلمات فوراً في الداتابيز
+        // 💡 HINT بالعربي:
+        // هنا بنحط زرار الشير في شريط التطبيق فوق (AppBar).
+        // أول ما المستخدم يدوس عليه، الفانكشن دي هتروح تبص على النص المكتوب في الـ textController.
+        // لو النص فاضي، أو لو لسه مفيش نوت اتخلقت أصلاً (سواء محلي _note أو سحابي _cloudNote)، بنطلع له ديالوج التنبيه اللي عملناه سوا.
+        // أما لو النوت فيها كلام، بننادي على مكتبة Share.share وبنبعت لها النص، فتفتح قائمة الشير بتاعة الموبايل فوراً!
+        actions: [
+          IconButton(
+            onPressed: () async {
+              final text = _textController.text;
+
+              // 👇 بنفحص الشرطين سوا: لو النص فاضي أو لو الكائنين بتوع النوتس لسه بـ null
+              if (text.isEmpty || (_note == null && _cloudNote == null)) {
+                await showCannotShareEmptyNoteDialog(context);
+              } else {
+                // لو تمام وفيها نص، بنعمل شير للمكتوب
+                await SharePlus.instance.share(ShareParams(text: text));
+              }
+            },
+            icon: const Icon(Icons.share),
+          ),
+        ],
+      ),
+      // شرح بالعربي: دمج الـ FutureBuilder المحلي والسحابي بالتوازي بدون أخطاء في الأقواس
+      body: FutureBuilder<DatabaseNote>(
+        future: createOrGetExistingNote(context),
+        builder: (context, localSnapshot) {
+          return FutureBuilder<CloudNote>(
+            future: createOrGetExistingCloudNote(context),
+            builder: (context, cloudSnapshot) {
+              // شرح بالعربي: التأكد من انتهاء المحركين المحلي والسحابي معاً قبل عرض الحقل وتفعيل الـ Listener
+              if (localSnapshot.connectionState == ConnectionState.done &&
+                  cloudSnapshot.connectionState == ConnectionState.done) {
+                // شرح بالعربي: استدعاء دالة الـ Setup الموحدة بعد فتح الأقواس وتوفير تعريفها بالأعلى فوراً
                 _setupTextControllerListener();
-                // عرض واجهة الكتابة (التكست فيلد) للمستخدم بعد التأكد من أمان البيانات
+
                 return Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: TextField(
-                    controller: _textController,
+                    controller:
+                        _textController, // تأكد من الـ أندرسكور هنا لتطابق تعريفه فوق
                     keyboardType: TextInputType.multiline,
                     maxLines: null,
                     autofocus: true,
@@ -126,27 +212,16 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
                   ),
                 );
               } else {
-                // في حالة وجود مشكلة في الداتابيز ولم ترجع بيانات، نعرض رسالة خطأ بدلاً من الانهيار بشاشة حمراء
-                return Scaffold(
-                  body: Center(
-                    child: Text(
-                      'Error: ${snapshot.error ?? "No note data found."}',
-                    ),
-                  ),
-                );
+                return const Center(child: CircularProgressIndicator());
               }
-
-            // في حالة أن قاعدة البيانات لسه بتحمل، نعرض مؤشر تحميل دائري
-            default:
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-          }
+            },
+          );
         },
       ),
     );
   }
-}
+} // قوس قفل الكلاس الأساسي للشاشة بالكامل
+
   
   
 

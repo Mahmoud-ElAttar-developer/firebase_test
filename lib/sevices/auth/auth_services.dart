@@ -21,7 +21,7 @@ class AuthService implements AuthProvider {
   bool get isLoggedIn => provider.isLoggedIn;
 
   @override
-  Future<void> signInWithEmailAndPassword({
+  Future<AuthUser> signInWithEmailAndPassword({
     required String email,
     required String password,
   }) => provider.signInWithEmailAndPassword(
@@ -69,4 +69,6 @@ class AuthService implements AuthProvider {
 
   @override
   Future<void> initialize() => provider.initialize();
+
+
 }

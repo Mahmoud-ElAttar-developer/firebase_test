@@ -2,7 +2,7 @@ import 'package:firebase_test/sevices/auth/auth_user.dart';
 
 abstract class AuthProvider {
   Future<void> initialize();
-  Future<void> signInWithEmailAndPassword({
+  Future<AuthUser> signInWithEmailAndPassword({
     required String email,
     required String password,
   });
@@ -29,4 +29,5 @@ abstract class AuthProvider {
   AuthUser? get currentUser;
 
   void dispose();
+
 }

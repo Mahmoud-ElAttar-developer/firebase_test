@@ -149,6 +149,7 @@ class FirebaseAuthProvider implements AuthProvider {
 
   @override
   void dispose() {}
+
 }
 
 
