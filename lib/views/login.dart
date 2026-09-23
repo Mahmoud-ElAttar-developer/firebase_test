@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_test/extintions/buildcontext/loc.dart';
 import 'package:firebase_test/firebase_options.dart';
 import 'package:firebase_test/sevices/auth/auth_expection_all.dart';
 import 'package:firebase_test/sevices/auth/bloc/auth_bloc.dart';
@@ -59,20 +60,26 @@ class _LoginViewState extends State<LoginView> {
           // }
 
           if (state.exception is UserNotFoundAuthException) {
-            await showErrorDialog(context: context, text: 'User not found');
+            await showErrorDialog(
+              context: context,
+              text: context.loc.login_error_cannot_find_user,
+            );
           } else if (state.exception is WrongPasswordAuthException) {
-            await showErrorDialog(context: context, text: 'Wrong credentials');
+            await showErrorDialog(
+              context: context,
+              text: context.loc.login_error_wrong_credentials,
+            );
           } else if (state.exception is GenericAuthException) {
             // 🛑 تم تصليحها هنا بيمرر القيم مباشرة بدون كلمات context: أو text:
             await showErrorDialog(
               context: context,
-              text: 'Authentication error',
+              text: context.loc.login_error_auth_error,
             );
           }
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Login')),
+        appBar: AppBar(title: Text(context.loc.login)),
         body: FutureBuilder(
           future: Firebase.initializeApp(
             options: DefaultFirebaseOptions.currentPlatform,
@@ -83,122 +90,147 @@ class _LoginViewState extends State<LoginView> {
             switch (snapshot.connectionState) {
               case ConnectionState.done:
                 return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    children: [
-                      // Email field
-                      TextField(
-                        decoration: const InputDecoration(hintText: 'Email'),
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      // Password field
-                      TextField(
-                        decoration: const InputDecoration(hintText: 'Password'),
-                        controller: _password,
-                        obscureText: true,
-                        enableSuggestions: false,
-                        autocorrect: false,
-                      ),
-
-                      // login button
-                      TextButton(
-                        onPressed: () async {
-                          context.read<AuthBloc>().add(
-                            AuthEventLogIn(_email.text, _password.text),
-                          );
-                          // try {
-                          //   await AuthService.firebase()
-                          //       .signInWithEmailAndPassword(
-                          //         email: email,
-                          //         password: password,
-                          //       );
-                          //   final user = AuthService.firebase().currentUser;
-                          //   // تأمين الـ BuildContext قبل التوجيه لشاشة أخرى
-                          //   if (!mounted) return;
-                          //   if (user?.isEmailVerified ?? false) {
-                          //     Navigator.of(context).pushNamedAndRemoveUntil(
-                          //       '/notes/',
-                          //       (route) => false,
-                          //     );
-                          //   } else {
-                          //     if (!mounted) return;
-                          //     Navigator.of(context).pushNamedAndRemoveUntil(
-                          //       '/verify-email/',
-                          //       (route) => false,
-                          //     );
-                          //   }
-                          // } on UserNotFoundAuthException {
-                          //   if (mounted) {
-                          //     await showErrorDialog(
-                          //       context: context,
-                          //       text: 'User not found.',
-                          //     );
-                          //   }
-                          // } on WrongPasswordAuthException {
-                          //   if (mounted) {
-                          //     await showErrorDialog(
-                          //       context: context,
-                          //       text: 'Wrong credentials.',
-                          //     );
-                          //   }
-                          // } on InvalidEmailAuthException {
-                          //   if (mounted) {
-                          //     await showErrorDialog(
-                          //       context: context,
-                          //       text: 'Invalid email address.',
-                          //     );
-                          //   }
-                          // } on GenericAuthException {
-                          //   if (mounted) {
-                          //     await showErrorDialog(
-                          //       context: context,
-                          //       text: 'Authentication error.',
-                          //     );
-                          //   }
-                          // }
-                          // catch (e) {
-                          //   if (mounted) {
-                          //     await showErrorDialog(
-                          //       context: context,
-                          //       text:
-                          //           'An unexpected error occurred: ${e.toString()}',
-                          //     );
-                          //   }
-                          // }
-                        },
-
-                        child: Text(
-                          'Login',
-                          style: TextStyle(color: Colors.blue),
+                  padding: const EdgeInsets.all(10.0),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Text(
+                          context.loc.login_view_prompt,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'not register yet ? ',
-                            style: TextStyle(color: Colors.grey),
+                        // Email field
+                        TextField(
+                          decoration: InputDecoration(
+                            hintText: context.loc.email_text_field_placeholder,
                           ),
-                          TextButton(
-                            onPressed: () {
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        // Password field
+                        TextField(
+                          decoration: InputDecoration(
+                            hintText:
+                                context.loc.password_text_field_placeholder,
+                          ),
+                          controller: _password,
+                          obscureText: true,
+                          enableSuggestions: false,
+                          autocorrect: false,
+                        ),
+
+                        // login button
+                        TextButton(
+                          onPressed: () async {
                             context.read<AuthBloc>().add(
-                              const AuthEventShouldRegister(),
+                              AuthEventLogIn(_email.text, _password.text),
                             );
-                            },
-                            child: Text(
-                              'register',
-                              style: TextStyle(color: Colors.blue),
-                            ),
+                            // try {
+                            //   await AuthService.firebase()
+                            //       .signInWithEmailAndPassword(
+                            //         email: email,
+                            //         password: password,
+                            //       );
+                            //   final user = AuthService.firebase().currentUser;
+                            //   // تأمين الـ BuildContext قبل التوجيه لشاشة أخرى
+                            //   if (!mounted) return;
+                            //   if (user?.isEmailVerified ?? false) {
+                            //     Navigator.of(context).pushNamedAndRemoveUntil(
+                            //       '/notes/',
+                            //       (route) => false,
+                            //     );
+                            //   } else {
+                            //     if (!mounted) return;
+                            //     Navigator.of(context).pushNamedAndRemoveUntil(
+                            //       '/verify-email/',
+                            //       (route) => false,
+                            //     );
+                            //   }
+                            // } on UserNotFoundAuthException {
+                            //   if (mounted) {
+                            //     await showErrorDialog(
+                            //       context: context,
+                            //       text: 'User not found.',
+                            //     );
+                            //   }
+                            // } on WrongPasswordAuthException {
+                            //   if (mounted) {
+                            //     await showErrorDialog(
+                            //       context: context,
+                            //       text: 'Wrong credentials.',
+                            //     );
+                            //   }
+                            // } on InvalidEmailAuthException {
+                            //   if (mounted) {
+                            //     await showErrorDialog(
+                            //       context: context,
+                            //       text: 'Invalid email address.',
+                            //     );
+                            //   }
+                            // } on GenericAuthException {
+                            //   if (mounted) {
+                            //     await showErrorDialog(
+                            //       context: context,
+                            //       text: 'Authentication error.',
+                            //     );
+                            //   }
+                            // }
+                            // catch (e) {
+                            //   if (mounted) {
+                            //     await showErrorDialog(
+                            //       context: context,
+                            //       text:
+                            //           'An unexpected error occurred: ${e.toString()}',
+                            //     );
+                            //   }
+                            // }
+                          },
+
+                          child: Text(
+                            context.loc.login,
+                            style: TextStyle(color: Colors.blue),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            context.read<AuthBloc>().add(
+                              const AuthEventForgotPassword(),
+                            );
+                          },
+                          child: Text(
+                            context.loc.verify_email_send_email_verification,
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Text(
+                            //   context.loc.login_view_not_registered_yet,
+                            //   style: TextStyle(color: Colors.grey),
+                            // ),
+                            TextButton(
+                              onPressed: () {
+                                context.read<AuthBloc>().add(
+                                  const AuthEventShouldRegister(),
+                                );
+                              },
+                              child: Text(
+                                context.loc.login_view_not_registered_yet,
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
 
               default:
-                return Text('Loading...');
+                return Text(context.loc.login_view_prompt);
             }
           },
         ),

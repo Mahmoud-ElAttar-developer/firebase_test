@@ -1,3 +1,4 @@
+import 'package:firebase_test/extintions/buildcontext/loc.dart';
 import 'package:firebase_test/sevices/auth/bloc/auth_bloc.dart';
 import 'package:firebase_test/sevices/auth/bloc/auth_event.dart';
 import 'package:flutter/material.dart';
@@ -21,11 +22,11 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "we have sent you an email please check your inbox",
+                context.loc.verify_email_view_prompt,
                 style: TextStyle(color: Colors.black, fontSize: 20),
               ),
               Text(
-                "if you hav'nt received an email please check your spam folder",
+                context.loc.verify_email_send_email_verification,
                 style: TextStyle(color: Colors.black, fontSize: 20),
               ),
               TextButton(
@@ -34,8 +35,8 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                     const AuthEventSendEmailVerification(),
                   );
                 },
-                child: const Text(
-                  'send email verification',
+                child:  Text(
+                  context.loc.verify_email_send_email_verification,
                   style: TextStyle(color: Colors.blue, fontSize: 20),
                 ),
               ),
@@ -43,8 +44,8 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                 onPressed: () async {
                   context.read<AuthBloc>().add(const AuthEventLogOut());
                 },
-                child: const Text(
-                  'Now go to login page',
+                child: Text(
+                  context.loc.logout_button,
                   style: TextStyle(color: Colors.blue, fontSize: 20),
                 ),
               ),

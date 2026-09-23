@@ -58,3 +58,10 @@ class AuthEventLogOut extends AuthEvent {
   const AuthEventLogOut();
 }
 
+// 8 // تغيير لغة التطبيق ديناميكياً: بيبعت كود اللغة الجديد عشان نقلب الواجهة
+class AuthEventChangeLanguage extends AuthEvent {
+  final String localeCode;
+  const AuthEventChangeLanguage({required this.localeCode});
+}
+
+

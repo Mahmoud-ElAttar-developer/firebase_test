@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_test/extintions/buildcontext/loc.dart';
 import 'package:firebase_test/firebase_options.dart';
 import 'package:firebase_test/sevices/auth/auth_expection_all.dart';
 import 'package:firebase_test/sevices/auth/bloc/auth_bloc.dart';
@@ -48,21 +49,21 @@ class _RegiesterViewState extends State<RegiesterView> {
       listener: (context, state) async {
         if (state is AuthStateRegistering) {
           if (state.exception is WeakPasswordAuthException) {
-            await showErrorDialog(context: context, text: 'Weak password');
+            await showErrorDialog(context: context, text: context.loc.register_error_weak_password);
           } else if (state.exception is EmailAlreadyInUseAuthException) {
             await showErrorDialog(
               context: context,
-              text: 'Email is already in use',
+              text: context.loc.register_error_email_already_in_use,
             );
           } else if (state.exception is GenericAuthException) {
-            await showErrorDialog(context: context, text: 'Failed to register');
+            await showErrorDialog(context: context, text: context.loc.register_error_generic);
           } else if (state.exception is InvalidEmailAuthException) {
-            await showErrorDialog(context: context, text: 'Invalid email');
+            await showErrorDialog(context: context, text: context.loc.register_error_invalid_email);
           }
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Register')),
+        appBar: AppBar(title: Text(context.loc.register)),
         body: FutureBuilder(
           future: Firebase.initializeApp(
             options: DefaultFirebaseOptions.currentPlatform,
@@ -74,69 +75,78 @@ class _RegiesterViewState extends State<RegiesterView> {
               case ConnectionState.done:
                 return Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    children: [
-                      // Name field
-                      TextField(
-                        decoration: const InputDecoration(hintText: 'Name'),
-                        controller: _name,
-                      ),
-                      // Email field
-                      TextField(
-                        decoration: const InputDecoration(hintText: 'Email'),
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      // Password field
-                      TextField(
-                        decoration: const InputDecoration(hintText: 'Password'),
-                        controller: _password,
-                        obscureText: true,
-                        enableSuggestions: false,
-                        autocorrect: false,
-                      ),
-
-                      // Register button
-                      TextButton(
-                        onPressed: () async {
-                          final email = _email.text;
-                          final password = _password.text;
-                          context.read<AuthBloc>().add(
-                            AuthEventRegister(email, password),
-                          );
-                        },
-
-                        child: Text(
-                          'Register',
-                          style: TextStyle(color: Colors.blue),
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
                         children: [
                           Text(
-                            'already register? ',
-                            style: TextStyle(color: Colors.grey),
+                            context.loc.register_view_prompt,
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                           ),
+                          // Name field
+                          TextField(
+                            decoration:  InputDecoration(hintText: context.loc.name_text_field_placeholder),
+                            controller: _name,
+                          ),
+                          // Email field
+                          TextField(
+                            decoration:  InputDecoration(hintText: context.loc.email_text_field_placeholder),
+                            controller: _email,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          // Password field
+                          TextField(
+                            decoration:  InputDecoration(hintText: context.loc.password_text_field_placeholder),
+                            controller: _password,
+                            obscureText: true,
+                            enableSuggestions: false,
+                            autocorrect: false,
+                          ),
+                      
+                          // Register button
                           TextButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              final email = _email.text;
+                              final password = _password.text;
                               context.read<AuthBloc>().add(
-                                const AuthEventLogOut(), // 👈 دي اللي هترجعك لشاشة الـ Sign In عن طريق الـ Bloc
+                                AuthEventRegister(email, password),
                               );
                             },
+                      
                             child: Text(
-                              'login',
+                             context.loc.register,
                               style: TextStyle(color: Colors.blue),
                             ),
                           ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Text(
+                              //   context.loc.register_view_already_registered,
+                              //   style: TextStyle(color: Colors.grey),
+                              // ),
+                              TextButton(
+                                onPressed: () {
+                                  context.read<AuthBloc>().add(
+                                    const AuthEventLogOut(), // 👈 دي اللي هترجعك لشاشة الـ Sign In عن طريق الـ Bloc
+                                  );
+                                },
+                                child: Text(
+                                 context.loc.register_view_already_registered,
+                                  style: TextStyle(color: Colors.blue,),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 );
 
               default:
-                return Text('Loading...');
+                return Text(context.loc.register_view_prompt);
             }
           },
         ),

@@ -1,3 +1,4 @@
+import 'package:firebase_test/extintions/buildcontext/loc.dart';
 import 'package:firebase_test/sevices/auth/auth_services.dart';
 import 'package:firebase_test/sevices/cloud/cloud_note.dart';
 import 'package:firebase_test/utilies/dialogs/cannot_share_empty_note_dialog.dart';
@@ -7,6 +8,7 @@ import 'package:firebase_test/sevices/cloud/fire_base_cloud_storage.dart';
 // شرح بالعربي: استيراد خدمات SQLite المحلية مع تعديل المسار ليتطابق مع اسم مجلدك المكتوب 'curd' بدلاً من 'crud'
 import 'package:firebase_test/sevices/curd/notes_services.dart';
 import 'package:firebase_test/utilies/generics/get_arguments.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 class CreateUpdateNoteView extends StatefulWidget {
@@ -160,7 +162,12 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Note'),
+        title: Text(
+          context.loc.start_typing_your_note,
+          style: TextStyle(fontSize: 20),
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.clip,
+        ),
 
         // 💡 HINT بالعربي:
         // هنا بنحط زرار الشير في شريط التطبيق فوق (AppBar).
@@ -204,9 +211,10 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
                         _textController, // تأكد من الـ أندرسكور هنا لتطابق تعريفه فوق
                     keyboardType: TextInputType.multiline,
                     maxLines: null,
+                    maxLength: 1000,
                     autofocus: true,
-                    decoration: const InputDecoration(
-                      hintText: 'Start typing your note...',
+                    decoration: InputDecoration(
+                      hintText: context.loc.start_typing_your_note,
                       border: InputBorder.none,
                     ),
                   ),

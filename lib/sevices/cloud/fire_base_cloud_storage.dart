@@ -3,8 +3,6 @@ import 'package:firebase_test/sevices/cloud/cloud_note.dart';
 import 'package:firebase_test/sevices/cloud/cloud_storage_constants.dart';
 import 'package:firebase_test/sevices/cloud/cloud_storage_exceptions.dart';
 
-
-
 // هو مدير العمليات السحابية، والملف الأهم على الإطلاق.
 // شرح بالعربي: هذا الكلاس هو المسؤول الأساسي عن إدارة كل العمليات السحابية مع Firestore (إنشاء، قراءة، تحديث، حذف)
 class FirebaseCloudStorage {
@@ -32,29 +30,15 @@ class FirebaseCloudStorage {
     }
   }
 
-   // شرح بالعربي: دالة allNotes تجلب دفق مستمر (Stream) يتحدث تلقائياً عند حدوث أي تغيير في السحاب
-  Stream<Iterable<CloudNote>> allNotes({required String ownerUserId}) =>
-      notes.snapshots().map((event) => event.docs
-          .map((doc) => CloudNote.fromSnapshot(doc))
-          // شرح بالعربي: هنا نقوم بفلترة الملاحظات لتظهر فقط الملاحظات التي يملكها المستخدم الحالي
-          .where((note) => note.ownerUserId == ownerUserId));
+  // شرح بالعربي: دالة allNotes تجلب دفق مستمر (Stream) يتحدث تلقائياً عند حدوث أي تغيير في السحاب
+  Stream<Iterable<CloudNote>> allNotes({required String ownerUserId}) {
+    final allNotes = notes
+        .where(ownerUserIdFieldName, isEqualTo: ownerUserId)
+        .snapshots()
+        .map((event) => event.docs.map((doc) => CloudNote.fromSnapshot(doc)));
 
-  // شرح بالعربي: دالة getNotes تجلب الملاحظات السحابية مرة واحدة فقط (Future) عند طلبها بدلاً من المراقبة المستمرة
-  Future<Iterable<CloudNote>> getNotes({required String ownerUserId}) async {
-    try {
-      return await notes
-          .where(
-            ownerUserIdFieldName,
-            isEqualTo: ownerUserId,
-          )
-          .get()
-          // شرح بالعربي: نستخدم الكونستركتور الذكي fromSnapshot لتحويل مستندات الفايرستور تلقائياً إلى كائنات كلاس CloudNote في دارت
-          .then((value) => value.docs.map((doc) => CloudNote.fromSnapshot(doc)));
-    } catch (e) {
-      throw CouldNotGetAllNotesException();
-    }
+    return allNotes;
   }
-
 
   // شرح بالعربي: دالة لإنشاء ملاحظة جديدة فارغة على سحابة فايرستور وترجع كائن من نوع CloudNote يحتوي على الـ ID الجديد
   Future<CloudNote> createNewNote({required String ownerUserId}) async {
@@ -70,12 +54,44 @@ class FirebaseCloudStorage {
     );
   }
 
-
   // -------------------------------------------------------------
-  // شرح بالعربي: (Singleton Pattern) السطور التالية تضمن إنشاء نسخة واحدة ثابتة فقط 
+  // شرح بالعربي: (Singleton Pattern) السطور التالية تضمن إنشاء نسخة واحدة ثابتة فقط
   // من هذا الكلاس ومشاركتها في كل أنحاء التطبيق لمنع تكرار استهلاك الذاكرة
   static final FirebaseCloudStorage _shared =
       FirebaseCloudStorage._sharedInstance();
   FirebaseCloudStorage._sharedInstance();
   factory FirebaseCloudStorage() => _shared;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // شرح بالعربي: دالة getNotes تجلب الملاحظات السحابية مرة واحدة فقط (Future) عند طلبها بدلاً من المراقبة المستمرة
+  // Future<Iterable<CloudNote>> getNotes({required String ownerUserId}) async {
+  //   try {
+  //     return await notes
+  //         .where(
+  //           ownerUserIdFieldName,
+  //           isEqualTo: ownerUserId,
+  //         )
+  //         .get()
+  //         // شرح بالعربي: نستخدم الكونستركتور الذكي fromSnapshot لتحويل مستندات الفايرستور تلقائياً إلى كائنات كلاس CloudNote في دارت
+  //         .then((value) => value.docs.map((doc) => CloudNote.fromSnapshot(doc)));
+  //   } catch (e) {
+  //     throw CouldNotGetAllNotesException();
+  //   }
+  // }

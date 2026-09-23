@@ -103,7 +103,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           password: password,
         );
 
-        if (!user.isEmailVerified && user.email != email) {
+        if (!user.isEmailVerified) {
           emit(const AuthStateLoggedOut(exception: null, isLoading: false));
           emit(const AuthStateNeedsVerification(isLoading: false));
         } else {
@@ -122,6 +122,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } on Exception catch (e) {
         emit(AuthStateLoggedOut(exception: e, isLoading: false));
       }
+    });
+    on<AuthEventChangeLanguage>((event, emit) {
+      // هنا يتم حفظ اللغة الجديدة وإصدار حالة (State) لتحديث الـ MaterialApp
+      emit(state); 
     });
   }
 }

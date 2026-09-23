@@ -1,10 +1,13 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_test/extintions/buildcontext/loc.dart';
 import 'package:firebase_test/firebase_options.dart';
 import 'package:firebase_test/helpers/loading/loading_screen.dart';
+import 'package:firebase_test/l10n/app_localizations.dart';
 import 'package:firebase_test/sevices/auth/bloc/auth_bloc.dart';
 import 'package:firebase_test/sevices/auth/bloc/auth_event.dart';
 import 'package:firebase_test/sevices/auth/bloc/auth_state.dart';
 import 'package:firebase_test/sevices/auth/firebase_auth_provider.dart';
+import 'package:firebase_test/views/forgot_password_views.dart';
 import 'package:firebase_test/views/login.dart';
 import 'package:firebase_test/views/notes/creat_update_note.dart';
 import 'package:firebase_test/views/notes/notes_view.dart';
@@ -19,6 +22,16 @@ void main() async {
   runApp(
     MaterialApp(
       title: 'Firebase Test',
+      // 1. تحديد اللغات المتاحة (الإنجليزي والألماني)
+      supportedLocales: const [Locale('en'), Locale('de')],
+
+      // 2. المحللات البرمجية لقراءة ملفات الترجمة المولدة
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+
+      // 3. (اختياري للتجربة) لتثبيت لغة التطبيق على الألمانية الآن
+      // يمكنك مسح هذا السطر لاحقاً ليأخذ التطبيق لغة هاتفك الأندرويد تلقائياً
+      // locale: const Locale('en'),
+
       theme: ThemeData(primarySwatch: Colors.blue),
       debugShowCheckedModeBanner: false,
       routes: {
@@ -44,7 +57,7 @@ void main() async {
             if (state.isLoading) {
               LoadingScreen().show(
                 context: context,
-                text: state.loadingText ?? 'Please wait a moment',
+                text: state.loadingText ?? context.loc.generic_error_prompt,
               );
             } else {
               LoadingScreen().hide();
@@ -58,6 +71,8 @@ void main() async {
               return const VerifyEmailView();
             } else if (state is AuthStateLoggedOut) {
               return const LoginView();
+            } else if (state is AuthStateForgotPassword) {
+              return const ForgotPasswordView();
             } else if (state is AuthStateRegistering) {
               return const RegiesterView();
             } else {

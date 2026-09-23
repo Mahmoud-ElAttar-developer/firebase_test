@@ -1,3 +1,4 @@
+import 'package:firebase_test/extintions/buildcontext/loc.dart';
 import 'package:firebase_test/sevices/auth/bloc/auth_bloc.dart';
 import 'package:firebase_test/sevices/auth/bloc/auth_event.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,13 @@ import 'package:firebase_test/sevices/cloud/cloud_note.dart';
 import 'package:firebase_test/sevices/cloud/fire_base_cloud_storage.dart';
 import 'package:firebase_test/views/notes/notes_list_view.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+
+extension Count<T> on Stream<Iterable<T>> {
+  Stream<int> get getLength => map((event) => event.length);
+}
+
+
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -39,7 +47,18 @@ class _NotesViewState extends State<NotesView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Notes'),
+        title: StreamBuilder(
+          stream: _notesService.allNotes.getLength, 
+          builder: (context, AsyncSnapshot<int>snapshot) {
+             if (snapshot.hasData) {
+              final noteCount = snapshot.data ?? 0;
+              final text = context.loc.notes_title(noteCount);
+              return Text(text);
+            } else {
+              return const Text('');
+            }
+          }
+        ),
         actions: [
           IconButton(
             onPressed: () async {
@@ -79,9 +98,9 @@ case MenuAction.logout:
             },
             itemBuilder: (BuildContext context) {
               return [
-                const PopupMenuItem<MenuAction>(
+                PopupMenuItem<MenuAction>(
                   value: MenuAction.logout,
-                  child: Text('Log out'),
+                  child: Text(context.loc.logout_button),
                 ),
               ];
             },
@@ -97,6 +116,7 @@ case MenuAction.logout:
         builder: (context, snapshot) {
           switch (snapshot.connectionState) {
             case ConnectionState.waiting:
+              return const Center(child: CircularProgressIndicator());
             case ConnectionState.active:
               if (snapshot.hasData) {
                 final allNotes = snapshot.data as Iterable<CloudNote>;
